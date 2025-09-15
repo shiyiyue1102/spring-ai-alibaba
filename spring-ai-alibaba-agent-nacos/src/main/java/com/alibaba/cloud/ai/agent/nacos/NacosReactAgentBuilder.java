@@ -55,7 +55,8 @@ public class NacosReactAgentBuilder extends DefaultBuilder {
 				clientBuilder.defaultOptions(chatOptions);
 			} if (instruction != null) {
 				clientBuilder.defaultSystem(instruction);
-			} chatClient = clientBuilder.build();
+			}
+			chatClient = clientBuilder.build();
 		}
 
 		if (!nacosOptions.modelSpecified) {
@@ -63,11 +64,9 @@ public class NacosReactAgentBuilder extends DefaultBuilder {
 		} if (!nacosOptions.promptSpecified) {
 			if (nacosOptions.promptKey != null) {
 				NacosAgentInjector.injectPrompt(nacosOptions.getNacosConfigService(), chatClient, nacosOptions.promptKey);
-
 			}
 			else {
-				NacosAgentInjector.injectPromptByAgentId(nacosOptions.getNacosConfigService(), chatClient, nacosOptions.getAgentName());
-
+				NacosAgentInjector.injectPromptByAgentName(nacosOptions.getNacosConfigService(), chatClient, nacosOptions.getAgentName());
 			}
 		}
 
@@ -93,6 +92,8 @@ public class NacosReactAgentBuilder extends DefaultBuilder {
 		else {
 			toolNode = ToolNode.builder().build();
 		} NacosMcpToolsInjector.registry(llmNode, toolNode, nacosOptions, this.name);
+
+		this.description = this.name+" desc";
 		return new ReactAgent(llmNode, toolNode, this);
 	}
 }
