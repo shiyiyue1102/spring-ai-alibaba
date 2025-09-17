@@ -2,6 +2,7 @@ package com.alibaba.cloud.ai.agent.nacos;
 
 import java.util.List;
 
+import com.alibaba.cloud.ai.agent.nacos.vo.AgentVO;
 import com.alibaba.cloud.ai.graph.agent.Builder;
 import com.alibaba.cloud.ai.graph.agent.DefaultBuilder;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
@@ -61,12 +62,16 @@ public class NacosReactAgentBuilder extends DefaultBuilder {
 
 		if (!nacosOptions.modelSpecified) {
 			NacosAgentInjector.injectModel(nacosOptions, chatClient, this.name);
-		} if (!nacosOptions.promptSpecified) {
+		}
+
+		if (!nacosOptions.promptSpecified) {
 			if (nacosOptions.promptKey != null) {
 				NacosAgentInjector.injectPrompt(nacosOptions.getNacosConfigService(), chatClient, nacosOptions.promptKey);
 			}
 			else {
-				NacosAgentInjector.injectPromptByAgentName(nacosOptions.getNacosConfigService(), chatClient, nacosOptions.getAgentName());
+				AgentVO agentVO = NacosAgentInjector.loadAgentVO(nacosOptions.getNacosConfigService(), this.name);
+				this.description = agentVO.getDescription();
+				NacosAgentInjector.injectPromptByAgentName(nacosOptions.getNacosConfigService(), chatClient, nacosOptions.getAgentName(), agentVO);
 			}
 		}
 
@@ -83,7 +88,8 @@ public class NacosReactAgentBuilder extends DefaultBuilder {
 			llmNodeBuilder.toolCallbacks(tools);
 		} LlmNode llmNode = llmNodeBuilder.build();
 
-		ToolNode toolNode = null; if (resolver != null) {
+		ToolNode toolNode = null;
+		if (resolver != null) {
 			toolNode = ToolNode.builder().toolCallbackResolver(resolver).build();
 		}
 		else if (tools != null) {
@@ -91,9 +97,9 @@ public class NacosReactAgentBuilder extends DefaultBuilder {
 		}
 		else {
 			toolNode = ToolNode.builder().build();
-		} NacosMcpToolsInjector.registry(llmNode, toolNode, nacosOptions, this.name);
+		}
+		NacosMcpToolsInjector.registry(llmNode, toolNode, nacosOptions, this.name);
 
-		this.description = this.name+" desc";
 		return new ReactAgent(llmNode, toolNode, this);
 	}
 }

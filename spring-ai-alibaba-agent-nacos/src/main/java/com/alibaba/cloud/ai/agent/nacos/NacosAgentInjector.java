@@ -46,10 +46,9 @@ public class NacosAgentInjector {
 		}
 	}
 
-	public static void injectPromptByAgentName(NacosConfigService nacosConfigService, ChatClient chatClient, String agentId) {
+	public static void injectPromptByAgentName(NacosConfigService nacosConfigService, ChatClient chatClient,String agentName,AgentVO agentVO) {
 
 		try {
-			AgentVO agentVO = loadAgentVO(nacosConfigService, agentId);
 			if (agentVO == null) {
 				return;
 			}
@@ -57,7 +56,7 @@ public class NacosAgentInjector {
 			if (promptVO != null) {
 				NacosPromptInjector.replacePrompt(chatClient, promptVO);
 			}
-			NacosPromptInjector.registryPromptByAgentId(chatClient, nacosConfigService, agentId, promptVO);
+			NacosPromptInjector.registryPromptByAgentId(chatClient, nacosConfigService, agentName, promptVO);
 		}
 
 		catch (Exception e) {
