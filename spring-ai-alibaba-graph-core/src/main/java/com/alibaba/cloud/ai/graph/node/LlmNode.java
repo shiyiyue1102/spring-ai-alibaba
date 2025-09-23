@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Flux;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.DefaultChatClient;
 import org.springframework.ai.chat.client.advisor.api.Advisor;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -178,10 +177,9 @@ public class LlmNode implements NodeAction {
 		return buildChatClientRequestSpec().call().chatResponse();
 	}
 
-	private ChatClient.ChatClientRequestSpec buildChatClientRequestSpec() {
+	private List<UserMessage> exactHisUserMessage(List<Message> selectMessage) {
+		List<UserMessage> historyMessages = new ArrayList<>();
 
-		List<Message> selectMessage = new ArrayList<>(messages);
-		List<Message> historyMessages = new ArrayList<>();
 		Iterator<Message> messageIterator = selectMessage.iterator();
 		boolean isFirstUserMessage = false;
 		while (messageIterator.hasNext()) {
@@ -191,15 +189,25 @@ public class LlmNode implements NodeAction {
 					isFirstUserMessage = true;
 				}
 				else {
-					historyMessages.add(message);
+					historyMessages.add((UserMessage) message);
 					messageIterator.remove();
 				}
 			}
 		}
+		return historyMessages;
+	}
+
+	private ChatClient.ChatClientRequestSpec buildChatClientRequestSpec() {
+
+		List<Message> selectMessage = new ArrayList<>(messages);
+		List<UserMessage> historyMessages = exactHisUserMessage(selectMessage);
+		if (!historyMessages.isEmpty()) {
+			//selectMessage.add(convertToHisMessage(historyMessages));
+		}
 
 		ChatClient.ChatClientRequestSpec chatClientRequestSpec = chatClient.prompt()
 				.toolCallbacks(toolCallbacks)
-				.messages(selectMessage)
+				.messages(messages)
 				.advisors(advisors);
 
 		if (StringUtils.hasLength(systemPrompt)) {
@@ -215,23 +223,20 @@ public class LlmNode implements NodeAction {
 			}
 			chatClientRequestSpec.user(userPrompt);
 		}
-		if (historyMessages.size() > 1) {
-
-			String systemText = ((DefaultChatClient.DefaultChatClientRequestSpec) chatClientRequestSpec).getSystemText();
-
-			StringBuilder historyMessage = new StringBuilder();
-			for (int i = 0; i < historyMessages.size(); i++) {
-				if (historyMessages.get(i) instanceof UserMessage) {
-					historyMessage.append(i).append(":").append(historyMessages.get(i).getText()).append("\n");
-				}
-			}
-
-			String promptWithHistory = (systemText == null ? "" : systemText) + "\n Here is a previous question the user asked me. If it's relevant to the current question, please try to extract useful information; otherwise, feel free to ignore it and focus solely on the current question. The historical question is as follows: "
-					+ "\n"
-					+ historyMessage;
-			chatClientRequestSpec.system(promptWithHistory);
-		}
 		return chatClientRequestSpec;
+	}
+
+	private SystemMessage convertToHisMessage(List<UserMessage> historyMessages) {
+
+		StringBuilder historyMessage = new StringBuilder();
+		historyMessage.append("Here is a previous question user asked previous."
+				+ "please try to extract useful information related to current user message; otherwise, feel free to ignore it and focus solely on the current user message. The historical question is as follows: \n");
+		for (int i = 0; i < historyMessages.size(); i++) {
+			if (historyMessages.get(i) instanceof UserMessage) {
+				historyMessage.append(i).append(":").append(historyMessages.get(i).getText()).append("\n");
+			}
+		}
+		return new SystemMessage(historyMessage.toString());
 	}
 
 	/**
