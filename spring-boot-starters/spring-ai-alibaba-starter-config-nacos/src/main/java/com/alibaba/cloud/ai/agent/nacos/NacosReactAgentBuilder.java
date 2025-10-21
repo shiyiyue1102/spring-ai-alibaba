@@ -106,7 +106,7 @@ public class NacosReactAgentBuilder extends NacosAgentPromptBuilder {
 		this.tools = convert(nacosOptions, mcpServersVO);
 
 		//7. build tools
-		AgentLlmNode.Builder llmNodeBuilder = AgentLlmNode.builder().chatClient(chatClient);
+		AgentLlmNode.Builder llmNodeBuilder = AgentLlmNode.builder().instruction(instruction).chatClient(chatClient);
 		if (outputKey != null && !outputKey.isEmpty()) {
 			llmNodeBuilder.outputKey(outputKey);
 		}
